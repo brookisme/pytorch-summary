@@ -30,7 +30,6 @@ def summary(model, input_size, batch_size=-1, device="cuda"):
                             for o in out:
                                 shapes.append([-1] + list(o.size())[1:])
                         summary[m_key]["output_shapes"] = shapes
-                        print('BOOM',m_key,shapes)
                     except:
                         summary[m_key]["unhandled_types"] = [type(o) for o in output]
             else:
