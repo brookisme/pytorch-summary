@@ -19,9 +19,20 @@ def summary(model, input_size, batch_size=-1, device="cuda"):
             summary[m_key]["input_shape"] = list(input[0].size())
             summary[m_key]["input_shape"][0] = batch_size
             if isinstance(output, (list, tuple)):
-                summary[m_key]["output_shape"] = [
-                    [-1] + list(o.size())[1:] for o in output
-                ]
+                try:
+                    summary[m_key]["output_shape"] = [
+                        [-1] + list(o.size())[1:] for o in output
+                    ]
+                except:
+                    try:
+                        shapes=[]
+                        for out in output:
+                            for o in out:
+                                shapes.append([-1] + list(o.size())[1:])
+                        summary[m_key]["output_shapes"] = shapes
+                        print('BOOM',m_key,shapes)
+                    except:
+                        summary[m_key]["unhandled_types"] = [type(o) for o in output]
             else:
                 summary[m_key]["output_shape"] = list(output.size())
                 summary[m_key]["output_shape"][0] = batch_size
@@ -83,14 +94,25 @@ def summary(model, input_size, batch_size=-1, device="cuda"):
     total_output = 0
     trainable_params = 0
     for layer in summary:
+        out_shape=summary[layer].get("output_shape")
+        if out_shape:
+            shape_str=str(out_shape)
+            total_output += np.prod(out_shape)
+        else:
+            out_shapes=summary[layer].get("output_shapes")
+            if out_shapes:
+                shape_str=str(out_shapes)
+                for out_shape in out_shapes:
+                    total_output += np.prod(out_shape)
+            else:
+                shape_str=str(summary[layer].get("unhandled_types"," ERROR "))
         # input_shape, output_shape, trainable, nb_params
         line_new = "{:>20}  {:>25} {:>15}".format(
             layer,
-            str(summary[layer]["output_shape"]),
+            shape_str,
             "{0:,}".format(summary[layer]["nb_params"]),
         )
         total_params += summary[layer]["nb_params"]
-        total_output += np.prod(summary[layer]["output_shape"])
         if "trainable" in summary[layer]:
             if summary[layer]["trainable"] == True:
                 trainable_params += summary[layer]["nb_params"]
